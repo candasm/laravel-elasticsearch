@@ -1,20 +1,23 @@
 <?php
+
 namespace Shift31\LaravelElasticsearch;
 
-use Elasticsearch\ClientBuilder;
+use Elasticsearch\Client;
 use Illuminate\Foundation\AliasLoader;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
 
 class ElasticsearchServiceProvider extends ServiceProvider
 {
-    const VERSION = '4.5.0';
+    const VERSION = '5.0.0';
+    const CONFIG_PATH = __DIR__ . '/../config/elasticsearch.php';
 
     /**
      * @inheritdoc
      */
     public function boot()
     {
-        $this->package('shift31/laravel-elasticsearch', 'shift31');
+        $this->publishes([self::CONFIG_PATH => config_path('elasticsearch.php')], 'config');
     }
 
     /**
@@ -22,10 +25,11 @@ class ElasticsearchServiceProvider extends ServiceProvider
      */
     public function register()
     {
+        $this->mergeConfigFrom(self::CONFIG_PATH, 'elasticsearch');
         $this->app->singleton('elasticsearch', function () {
-            $config = array_merge($this->loadDefaultConfig(), $this->app->config->get('shift31::elasticsearch'));
+            $config = Config::get('elasticsearch');
 
-            return ClientBuilder::fromConfig($config);
+            return new Client($config);
         });
 
         $this->app->booting(function () {
@@ -40,10 +44,5 @@ class ElasticsearchServiceProvider extends ServiceProvider
     public function provides()
     {
         return ['elasticsearch'];
-    }
-
-    private function loadDefaultConfig()
-    {
-        return $this->app->files->getRequire(realpath(__DIR__ . '/../../config/elasticsearch.php'));
     }
 }
